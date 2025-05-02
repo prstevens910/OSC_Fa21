@@ -1,0 +1,1806 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+    <script src="jspsych-psychophysics-master/js/jspsych.js"></script>
+    <script src="jspsych-psychophysics-master/jspsych-psychophysics.js"></script>
+    <script src="jspsych-psychophysics-master/js/jspsych-html-keyboard-response.js"></script>
+    <script src="jspsych-psychophysics-master/js/jspsych-fullscreen.js"></script>
+    <script src="jspsych-psychophysics-master/js/jspsych-survey-text.js"></script>
+    <script src="jspsych-psychophysics-master/js/jspsych-preload.js"></script>
+    <script src="jspsych-psychophysics-master/js/jspsych-html-button-response.js"></script>
+    <script src="jspsych-psychophysics-master/js/jspsych-virtual-chinrest.js"></script>
+    <script src="jspsych-psychophysics-master/js/svg.js"></script>
+    <link rel="stylesheet" href="jspsych-psychophysics-master/css/jspsych.css">
+    </link>
+</head>
+
+<body></body>
+<script>
+    // const bankImage = './bank-card.png'
+
+
+    var timeline = [];
+    // NOTE: ^^ get rid of .stimulus stuff above if it's not working. 
+
+    // // Preloading files are needed to present the stimuli accurately.
+    // const preload = {
+    //     type: 'preload',
+    //     images: bankImage,
+    // }
+    // timeline.push(preload)
+
+    // function for saving data after every trial using php/ajax method. 
+    function saveData(filename, filedata) {
+        $.ajax({
+            type: 'post',
+            cache: false,
+            url: 'write_data.php',
+            data: { filename: filename, filedata: filedata }
+        });
+    }
+    // function for saving data at end using php/ajax method. 
+    // note: only difference is that finalSaveData sends an email. 
+    function finalSaveData(filename, filedata) {
+        $.ajax({
+            type: 'post',
+            cache: false,
+            url: 'write_data_final.php',
+            data: { filename: filename, filedata: filedata }
+        });
+    }
+
+    // ***********************************************************************
+    // ******************* ESTABLISH VARIABLES FOR THIS RUN ******************
+    // ***********************************************************************
+
+    // pick the "yes" key and "no" key
+    var rand_key_sel = Math.round(Math.random())
+    var key_ops = [
+        'j',
+        'f'
+    ]
+    var yeskey = key_ops[rand_key_sel]
+    var nokey = key_ops[Math.abs(rand_key_sel - 1)]
+
+    // set trial timing parameters (in milliseconds)
+    var fix_dur = 500;
+    var mask_dur = 500; // added back the mask
+    var prime_dur = 50; // changed back to 50 from 250
+    var target_dur = 500;
+    var response_dur = 2000;
+    var iti = 1000;
+    var break_dur = 30000;
+
+    // set trial timing parameters (in number of frames)
+    // var fix_dur = 30;
+    // var mask_dur = 30;
+    // var prime_dur = 3;
+    // var target_dur = 30;
+    // var response_dur = 120;
+    // var iti = 60;
+    // var break_dur = 1796;
+
+
+
+    // make the stimuli that will be presented repeatedly (blank ITI, fixation cross, hash mask, break)
+    var iti_blank =
+    {
+        obj_type: 'text', // hash forward mask
+        content: ' ',
+        font: "24px 'Courier'",
+        text_color: 'white',
+        show_end_time: iti // this will be (fix_dur + mask_dur)
+    }
+
+    var fix_cross = {
+        obj_type: 'cross', // fixation
+        line_length: 12, // pixels
+        line_width: 3,
+        show_start_time: iti,
+        show_end_time: iti + fix_dur // this will be fix_dur ///PATIENCE COME BACK HERE - make fix cross and hash mask objects!
+    }
+
+    var hash_mask =
+    {
+        obj_type: 'text', // hash forward mask
+        content: '########',
+        font: "24px 'Arial'",
+        text_color: 'black',
+        show_start_time: iti + fix_dur, // this will be fix_dur
+        show_end_time: iti + fix_dur + mask_dur // this will be (fix_dur + mask_dur)
+    }
+
+    // when are we? time information to save with data
+    var m = new Date();
+    var dateString =
+        m.getUTCFullYear() + "/" +
+        ("0" + (m.getUTCMonth() + 1)).slice(-2) + "/" +
+        ("0" + m.getUTCDate()).slice(-2) + " " +
+        ("0" + m.getUTCHours()).slice(-2) + ":" +
+        ("0" + m.getUTCMinutes()).slice(-2) + ":" +
+        ("0" + m.getUTCSeconds()).slice(-2);
+
+    // set participant ID 
+    var subjID = jsPsych.randomization.randomID(12);
+
+    // stim list contains all the word pairs that will be presented. 
+    var practice = jsPsych.randomization.shuffle([
+        { prime: "FURNISH", target: "chair", related_prime: undefined, is_word: 'yes', prime_transparency: undefined },
+        { prime: "CARPET", target: "dog", related_prime: undefined, is_word: 'yes', prime_transparency: undefined },
+        { prime: "FOGGY", target: "bug", related_prime: undefined, is_word: 'yes', prime_transparency: undefined },
+        { prime: "ABSOLUTE", target: "rodeo", related_prime: undefined, is_word: 'yes', prime_transparency: undefined },
+        { prime: "MONKEY", target: "music", related_prime: undefined, is_word: 'yes', prime_transparency: undefined },
+        { prime: "VEHICLE", target: "lamp", related_prime: undefined, is_word: 'yes', prime_transparency: undefined },
+        { prime: "DONKEY", target: "flower", related_prime: undefined, is_word: 'yes', prime_transparency: undefined },
+        { prime: "MANGLED", target: "glass", related_prime: undefined, is_word: 'yes', prime_transparency: undefined },
+        { prime: "MINGLE", target: "flass", related_prime: undefined, is_word: 'no', prime_transparency: undefined },
+        { prime: "DECIDED", target: "glog", related_prime: undefined, is_word: 'no', prime_transparency: undefined },
+        { prime: "GREENERY", target: "chusk", related_prime: undefined, is_word: 'no', prime_transparency: undefined },
+        { prime: "BUILDING", target: "lode", related_prime: undefined, is_word: 'no', prime_transparency: undefined },
+        { prime: "MOUNTAIN", target: "mair", related_prime: undefined, is_word: 'no', prime_transparency: undefined },
+        { prime: "UNSTABLE", target: "deach", related_prime: undefined, is_word: 'no', prime_transparency: undefined },
+        { prime: "INSECT", target: "rorn", related_prime: undefined, is_word: 'no', prime_transparency: undefined },
+        { prime: "CLOUDY", target: "flug", related_prime: undefined, is_word: 'no', prime_transparency: undefined }
+    ]);
+
+    var stim1 = [
+        { prime: 'ALLURE', target: 'all', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'PUCKER', target: 'stock', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'CARPAL', target: 'carp', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'MARSHAL', target: 'pill', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'DAMAGE', target: 'dam', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'BRANDY', target: 'raft', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'FIGMENT', target: 'fig', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'MAGNETIC', target: 'pond', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'TEMPER', target: 'temp', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'PROTECTION', target: 'scar', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'RATIONAL', target: 'ration', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'RESPECTIVE', target: 'gall', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'IRONY', target: 'iron', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'DIFFERENCE', target: 'trait', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'BUTTERY', target: 'butt', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'CLOUDLESS', target: 'spin', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'BARBER', target: 'barb', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'CRAFTY', target: 'putt', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'TRACTABLE', target: 'tract', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'SPINSTER', target: 'earl', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'SEVERAL', target: 'sever', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'SOFTEN', target: 'bread', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'TOUCHY', target: 'touch', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'PAINTER', target: 'plum', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'POSTERITY', target: 'poster', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'PEELER', target: 'treat', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'SIREN', target: 'sir', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'PLUMAGE', target: 'rend', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'GLUTEN', target: 'glut', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'BRACELET', target: 'posit', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'HOSTAGE', target: 'host', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'BLENDER', target: 'grate', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'QUESTION', target: 'quest', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'TIGHTEN', target: 'rook', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'SHOWER', target: 'show', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'WORTHLESS', target: 'feat', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'DOLEFUL', target: 'dole', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'VIEWER', target: 'dice', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'MOTHER', target: 'moth', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'WANDER', target: 'mass', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'NUMBER', target: 'numb', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'FARMER', target: 'welt', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'SHIFTLESS', target: 'shift', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'DEPENDABLE', target: 'craft', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'CRATER', target: 'crate', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'BRISKET', target: 'bowl', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'POLLEN', target: 'poll', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'BREADTH', target: 'troll', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'SEEDY', target: 'seed', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'BLOOMER', target: 'draw', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'LATERAL', target: 'later', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'EARLY', target: 'brig', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'BASHFUL', target: 'bash', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'RENEWABLE', target: 'fruit', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'ORGANIZE', target: 'organ', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'BATTERY', target: 'fair', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'BROTHER', target: 'broth', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'BULBOUS', target: 'brand', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'WICKER', target: 'wick', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'GRATEFUL', target: 'crypt', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'TRUMPET', target: 'trump', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'RAFTER', target: 'custom', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'EARNEST', target: 'earn', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'ROOKIE', target: 'slim', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'HINDER', target: 'hind', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'BRIGADE', target: 'whole', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'HELMET', target: 'helm', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'TRAITOR', target: 'flour', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'COLONIST', target: 'colon', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'ACIDIC', target: 'snip', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'LIQUIDATE', target: 'liquid', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'CRITICAL', target: 'hung', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'HUSKY', target: 'husk', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'VENDOR', target: 'author', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'SQUARELY', target: 'square', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'RENDER', target: 'limb', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'SKEWER', target: 'skew', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'GALLANT', target: 'audit', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'CHARTER', target: 'chart', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'GREENERY', target: 'marsh', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'ACCESSORY', target: 'access', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'BLOCKADE', target: 'respect', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'COASTER', target: 'coast', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'PONDER', target: 'invent', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'FEUDAL', target: 'feud', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'TRASHY', target: 'thick', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'DORMANT', target: 'dorm', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'GOALIE', target: 'puck', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'PLUCKY', target: 'pluck', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'QUICKLY', target: 'brisk', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'GLOWER', target: 'glow', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'BEAKER', target: 'wand', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'WONDERFUL', target: 'wonder', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'FINALIZE', target: 'brace', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'BLAZER', target: 'blaze', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'ANGELIC', target: 'batter', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'BUZZARD', target: 'buzz', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'STOCKY', target: 'beak', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'FLICKER', target: 'flick', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'BULKY', target: 'bloom', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'HANGER', target: 'hang', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'TREATY', target: 'king', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'BUSHY', target: 'bush', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'HARPIST', target: 'gang', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'HEROIC', target: 'hero', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'REACTION', target: 'green', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'DEADLY', target: 'dead', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'FRUITLESS', target: 'harp', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'MARCHER', target: 'march', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'IDOLIZE', target: 'vend', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'HERBAL', target: 'herb', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'ERUPTION', target: 'gold', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'HUNTER', target: 'hunt', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'MASSAGE', target: 'worth', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'SUITABLE', target: 'suit', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'FINDER', target: 'angel', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'RAIDER', target: 'raid', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'INVENTORY', target: 'block', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'ACREAGE', target: 'acre', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'FOOLISH', target: 'quick', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'SPEAKER', target: 'speak', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'PREDICTABLE', target: 'lone', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'TOURISM', target: 'tour', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'THICKET', target: 'clear', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'QUIETLY', target: 'quiet', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'AUDITION', target: 'mock', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'LUMPY', target: 'lump', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'BRAVELY', target: 'soft', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'DUCKLING', target: 'duck', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'RESISTANT', target: 'cloud', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'EJECTION', target: 'eject', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'POSITIVE', target: 'acid', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'FLESHY', target: 'flesh', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'LIMBER', target: 'north', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'CREAMY', target: 'cream', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'SLIMY', target: 'find', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'STALKER', target: 'stalk', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'GOVERNMENT', target: 'trash', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'CHEAPLY', target: 'cheap', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'GANGSTER', target: 'loaf', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'KNOCKER', target: 'knock', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'NORTHERN', target: 'guilt', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'PASSIONATE', target: 'passion', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'KINGDOM', target: 'neat', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'SHARPEN', target: 'sharp', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'GOLDEN', target: 'react', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'HUMANITY', target: 'human', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'DEBTOR', target: 'tight', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'CHILLY', target: 'chill', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'CRYPTIC', target: 'strain', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'DIGITAL', target: 'digit', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'PILLAGE', target: 'idol', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'CHEERFUL', target: 'cheer', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'FAIRY', target: 'bulb', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'BOLDNESS', target: 'bold', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'CUSTOMER', target: 'govern', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'BROILER', target: 'broil', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'BOWLER', target: 'magnet', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'MEEKLY', target: 'meek', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'SELECTIVE', target: 'fool', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'MOODY', target: 'mood', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'LOAFER', target: 'resist', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'COOLANT', target: 'cool', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'MOCKERY', target: 'depend', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'VASTLY', target: 'vast', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'FEATURE', target: 'bulk', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'HEALER', target: 'heal', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'WELTER', target: 'view', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'REPORTER', target: 'report', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'LONELY', target: 'critic', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'DIRTY', target: 'dirt', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'SNIPER', target: 'protect', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'DARKNESS', target: 'dark', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'WHOLESOME', target: 'final', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'WEAKEN', target: 'weak', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'FLOURISH', target: 'paint', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'SLOWLY', target: 'slow', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'SCARY', target: 'farm', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'FEARSOME', target: 'fear', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'AUTHORIZE', target: 'goal', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'FIZZLE', target: 'fizz', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'DRAWER', target: 'differ', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'SELFISH', target: 'self', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'TROLLEY', target: 'brave', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'MOURNER', target: 'mourn', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'DICEY', target: 'select', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'CALMNESS', target: 'calm', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'NEATLY', target: 'predict', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'ZEALOUS', target: 'zeal', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'GUILTY', target: 'blend', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'LOOTER', target: 'loot', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'STRAINER', target: 'peel', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'FAILURE', target: 'fail', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'CLEARANCE', target: 'deep', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'MUSICAL', target: 'music', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'PUTTY', target: 'renew', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'TEACHER', target: 'teach', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'HUNGER', target: 'debt', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'BUYER', target: 'buy', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'DEEPLY', target: 'erupt', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'GRUBBY', target: 'sall', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'LITERAL', target: 'crin', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'CENTER', target: 'vam', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'VERBAL', target: 'crond', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'JOYFUL', target: 'bemp', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'NAUGHTY', target: 'rall', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'BELLY', target: 'riron', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'NAMELESS', target: 'plill', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'FILLED', target: 'darb', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'TUBER', target: 'searl', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'ROWABLE', target: 'tever', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'BOARDER', target: 'grum', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'PRICELESS', target: 'woster', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'HUNGRY', target: 'brend', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'FACTOR', target: 'fut', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'CUTTABLE', target: 'wate', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'BEARABLE', target: 'spest', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'TRAINEE', target: 'leat', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'BUOYANT', target: 'lole', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'CYNICAL', target: 'dass', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'TALKER', target: 'pumb', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'KILLER', target: 'paft', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'BUYING', target: 'clate', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'VENTURE', target: 'holl', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'WAGER', target: 'cheed', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'PLIABLE', target: 'hig', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'DREAMER', target: 'snash', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'PETTY', target: 'tair', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'WIDOWED', target: 'oth', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'IDYLLIC', target: 'cypt', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'CRACKER', target: 'wump', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'BULLY', target: 'im', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'BACKER', target: 'thind', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'COLORFUL', target: 'mour', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'HEIGHTEN', target: 'folon', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'BUMPER', target: 'cung', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'CORNY', target: 'blusk', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'RARELY', target: 'dimb', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'SINGER', target: 'cew', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'LINEAGE', target: 'quarsh', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'CIGARETTE', target: 'craccess', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'SUSPENDER', target: 'blinvent', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'EVENLY', target: 'breud', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'DINNER', target: 'pruck', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'SUMMER', target: 'uck', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'TELLER', target: 'fand', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'LEGENDARY', target: 'donder', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'COASTAL', target: 'atter', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'QUIETEN', target: 'duzz', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'BARONET', target: 'croom', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'BURIAL', target: 'ang', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'SELFLESS', target: 'lang', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'SEXIST', target: 'ero', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'TOUGHEN', target: 'arp', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'LIMEADE', target: 'garch', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'COPIER', target: 'shold', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'DEADEN', target: 'unt', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'WEALTHY', target: 'flangel', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'CORNER', target: 'baid', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'NYMPHET', target: 'gick', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'SADNESS', target: 'heak', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'GOVERNESS', target: 'chear', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'FINANCE', target: 'hiet', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'SAILOR', target: 'poft', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'WEAKNESS', target: 'guck', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'SIGNET', target: 'sacid', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'PORTLY', target: 'hesh', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'CELERY', target: 'pind', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'PORTION', target: 'bralk', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'POETRY', target: 'boaf', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'PRUDENT', target: 'nock', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'PUNISH', target: 'breat', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'DRESSER', target: 'barp', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'LARGELY', target: 'vight', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'OPTION', target: 'lill', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'WEARING', target: 'lidol', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'ARGUMENT', target: 'treer', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'COMPASSION', target: 'movern', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'STEAMER', target: 'hoil', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'ITEMIZE', target: 'plool', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'OFFER', target: 'shood', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'SUBJECTIVE', target: 'chepend', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'BAKERY', target: 'brast', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'GLOOMY', target: 'niew', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'PEACEFUL', target: 'feport', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'PRODUCTION', target: 'totect', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'CHRISTEN', target: 'gark', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'COUNTER', target: 'naint', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'BINDER', target: 'quow', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'LAXITY', target: 'poal', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'OPENED', target: 'hizz', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'HEARTEN', target: 'mave', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'PACKAGE', target: 'rourn', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'CONSIDERATE', target: 'bledict', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'HEIRESS', target: 'treal', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'RATTLE', target: 'beel', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'SLIPPER', target: 'dail', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'POISONOUS', target: 'cenew', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'QUARTER', target: 'ceach', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'CHILDISH', target: 'merupt', related_prime: 'no', is_word: 'no', prime_transparency: undefined }
+    ];
+    var stim2 = [
+        { prime: 'QUESTION', target: 'all', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'STOCKY', target: 'stock', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'REPORTER', target: 'carp', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'PILLAGE', target: 'pill', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'CRATER', target: 'dam', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'RAFTER', target: 'raft', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'RATIONAL', target: 'fig', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'PONDER', target: 'pond', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'SKEWER', target: 'temp', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'SCARY', target: 'scar', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'MARCHER', target: 'ration', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'GALLANT', target: 'gall', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'RAIDER', target: 'iron', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'TRAITOR', target: 'trait', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'HANGER', target: 'butt', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'SPINSTER', target: 'spin', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'SELFISH', target: 'barb', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'PUTTY', target: 'putt', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'HELMET', target: 'tract', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'EARLY', target: 'earl', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'DAMAGE', target: 'sever', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'BREADTH', target: 'bread', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'STALKER', target: 'touch', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'PLUMAGE', target: 'plum', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'DOLEFUL', target: 'poster', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'TREATY', target: 'treat', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'EJECTION', target: 'sir', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'RENDER', target: 'rend', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'SPEAKER', target: 'glut', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'POSITIVE', target: 'posit', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'TRUMPET', target: 'host', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'GRATEFUL', target: 'grate', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'CARPAL', target: 'quest', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'ROOKIE', target: 'rook', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'WONDERFUL', target: 'show', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'FEATURE', target: 'feat', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'COLONIST', target: 'dole', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'DICEY', target: 'dice', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'PLUCKY', target: 'moth', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'MASSAGE', target: 'mass', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'CHILLY', target: 'numb', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'WELTER', target: 'welt', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'DORMANT', target: 'shift', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'CRAFTY', target: 'craft', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'BUSHY', target: 'crate', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'BOWLER', target: 'bowl', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'HUMANITY', target: 'poll', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'TROLLEY', target: 'troll', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'IRONY', target: 'seed', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'DRAWER', target: 'draw', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'HEROIC', target: 'later', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'BRIGADE', target: 'brig', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'ORGANIZE', target: 'bash', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'FRUITLESS', target: 'fruit', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'TOURISM', target: 'organ', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'FAIRY', target: 'fair', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'HEALER', target: 'broth', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'BRANDY', target: 'brand', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'FIZZLE', target: 'wick', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'CRYPTIC', target: 'crypt', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'SHARPEN', target: 'trump', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'CUSTOMER', target: 'custom', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'MOODY', target: 'earn', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'SLIMY', target: 'slim', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'SEEDY', target: 'hind', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'WHOLESOME', target: 'whole', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'BROILER', target: 'helm', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'FLOURISH', target: 'flour', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'MEEKLY', target: 'colon', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'SNIPER', target: 'snip', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'HUNTER', target: 'liquid', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'HUNGER', target: 'hung', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'DIRTY', target: 'husk', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'AUTHORIZE', target: 'author', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'GLUTEN', target: 'square', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'LIMBER', target: 'limb', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'SQUARELY', target: 'skew', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'AUDITION', target: 'audit', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'BASHFUL', target: 'chart', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'MARSHAL', target: 'marsh', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'TOUCHY', target: 'access', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'RESPECTIVE', target: 'respect', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'KNOCKER', target: 'coast', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'INVENTORY', target: 'invent', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'SHIFTLESS', target: 'feud', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'THICKET', target: 'thick', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'LIQUIDATE', target: 'dorm', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'PUCKER', target: 'puck', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'MOTHER', target: 'pluck', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'BRISKET', target: 'brisk', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'CHEERFUL', target: 'glow', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'WANDER', target: 'wand', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'SEVERAL', target: 'wonder', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'BRACELET', target: 'brace', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'CHARTER', target: 'blaze', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'BATTERY', target: 'batter', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'GLOWER', target: 'buzz', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'BEAKER', target: 'beak', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'CALMNESS', target: 'flick', related_prime: 'no', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'BLOOMER', target: 'bloom', related_prime: 'yes', is_word: 'yes', prime_transparency: 'opaque' },
+        { prime: 'ACCESSORY', target: 'hang', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'KINGDOM', target: 'king', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'MUSICAL', target: 'bush', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'GANGSTER', target: 'gang', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'TEMPER', target: 'hero', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'GREENERY', target: 'green', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'WICKER', target: 'dead', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'HARPIST', target: 'harp', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'SHOWER', target: 'march', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'VENDOR', target: 'vend', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'BOLDNESS', target: 'herb', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'GOLDEN', target: 'gold', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'ALLURE', target: 'hunt', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'WORTHLESS', target: 'worth', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'FIGMENT', target: 'suit', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'ANGELIC', target: 'angel', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'MOURNER', target: 'raid', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'BLOCKADE', target: 'block', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'ZEALOUS', target: 'acre', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'QUICKLY', target: 'quick', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'BLAZER', target: 'speak', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'LONELY', target: 'lone', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'FLESHY', target: 'tour', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'CLEARANCE', target: 'clear', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'FEARSOME', target: 'quiet', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'MOCKERY', target: 'mock', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'POLLEN', target: 'lump', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'SOFTEN', target: 'soft', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'LUMPY', target: 'duck', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'CLOUDLESS', target: 'cloud', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'FEUDAL', target: 'eject', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'ACIDIC', target: 'acid', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'BUZZARD', target: 'flesh', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'NORTHERN', target: 'north', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'PASSIONATE', target: 'cream', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'FINDER', target: 'find', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'DEADLY', target: 'stalk', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'TRASHY', target: 'trash', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'EARNEST', target: 'cheap', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'LOAFER', target: 'loaf', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'BROTHER', target: 'knock', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'GUILTY', target: 'guilt', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'HUSKY', target: 'passion', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'NEATLY', target: 'neat', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'VASTLY', target: 'sharp', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'REACTION', target: 'react', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'COASTER', target: 'human', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'TIGHTEN', target: 'tight', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'POSTERITY', target: 'chill', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'STRAINER', target: 'strain', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'LATERAL', target: 'digit', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'IDOLIZE', target: 'idol', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'SUITABLE', target: 'cheer', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'BULBOUS', target: 'bulb', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'CREAMY', target: 'bold', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'GOVERNMENT', target: 'govern', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'SLOWLY', target: 'broil', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'MAGNETIC', target: 'magnet', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'TEACHER', target: 'meek', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'FOOLISH', target: 'fool', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'WEAKEN', target: 'mood', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'RESISTANT', target: 'resist', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'FAILURE', target: 'cool', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'DEPENDABLE', target: 'depend', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'CHEAPLY', target: 'vast', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'BULKY', target: 'bulk', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'DUCKLING', target: 'heal', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'VIEWER', target: 'view', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'FLICKER', target: 'report', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'CRITICAL', target: 'critic', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'ACREAGE', target: 'dirt', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'PROTECTION', target: 'protect', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'NUMBER', target: 'dark', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'FINALIZE', target: 'final', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'HERBAL', target: 'weak', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'PAINTER', target: 'paint', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'BARBER', target: 'slow', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'FARMER', target: 'farm', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'HINDER', target: 'fear', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'GOALIE', target: 'goal', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'TRACTABLE', target: 'fizz', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'DIFFERENCE', target: 'differ', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'COOLANT', target: 'self', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'BRAVELY', target: 'brave', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'QUIETLY', target: 'mourn', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'SELECTIVE', target: 'select', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'LOOTER', target: 'calm', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'PREDICTABLE', target: 'predict', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'BUYER', target: 'zeal', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'BLENDER', target: 'blend', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'SIREN', target: 'loot', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'PEELER', target: 'peel', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'HOSTAGE', target: 'fail', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'DEEPLY', target: 'deep', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'DIGITAL', target: 'music', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'RENEWABLE', target: 'renew', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'BUTTERY', target: 'teach', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'DEBTOR', target: 'debt', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'DARKNESS', target: 'buy', related_prime: 'no', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'ERUPTION', target: 'erupt', related_prime: 'yes', is_word: 'yes', prime_transparency: 'transparent' },
+        { prime: 'WARMTH', target: 'slock', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'GASIFY', target: 'rarp', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'CRABBY', target: 'baft', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'FLOATER', target: 'ig', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'HILLY', target: 'frar', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'SCALDING', target: 'bation', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'ADOPTED', target: 'pait', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'CAPSIZE', target: 'utt', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'INNER', target: 'rutt', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'DETECTIVE', target: 'chact', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'SNEAKER', target: 'pead', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'GIFTED', target: 'bouch', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'TAILOR', target: 'reat', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'FUSSY', target: 'hir', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'DRUNKARD', target: 'dosit', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'CHICKEN', target: 'stost', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'BEEPER', target: 'blook', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'ARCHER', target: 'zow', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'RISKY', target: 'glice', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'SECTOR', target: 'foth', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'MISTER', target: 'telt', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'CANDIDATE', target: 'bift', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'LOTION', target: 'rowl', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'FORMER', target: 'croll', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'LOCKER', target: 'kaw', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'SPANNER', target: 'clater', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'OXYGENATE', target: 'guit', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'SHOULDER', target: 'florgan', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'UNITED', target: 'dand', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'GROWER', target: 'cick', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'SYMBOLIC', target: 'rustom', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'LEAFLET', target: 'mearn', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'FAVORABLE', target: 'fole', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'BOILER', target: 'welm', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'BANKER', target: 'bip', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'MODERNIZE', target: 'piquid', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'MOMENTOUS', target: 'spauthor', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'CLASSIFY', target: 'vare', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'BASELESS', target: 'faudit', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'DROPLET', target: 'rart', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'FOUNDATION', target: 'mespect', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'WESTERN', target: 'doast', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'HARNESS', target: 'bick', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'COYNESS', target: 'borm', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'PLAYING', target: 'misk', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'CLOVEN', target: 'whow', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'MARGINAL', target: 'sace', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'ENDURE', target: 'aze', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'KNOTTY', target: 'feak', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'ROOSTER', target: 'strick', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'WRECKER', target: 'ging', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'HAIRY', target: 'sush', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'CORDLESS', target: 'reen', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'CREAKY', target: 'squead', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'BUNKER', target: 'dend', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'LENDER', target: 'querb', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'INSISTENT', target: 'trorth', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'GINGERLY', target: 'muit', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'PRIORITY', target: 'grock', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'TENABLE', target: 'lacre', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'LESSEE', target: 'knone', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'SACCADE', target: 'wour', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'TRUSTEE', target: 'ock', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'PETAL', target: 'brump', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'APPOINTEE', target: 'moud', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'PAVEMENT', target: 'sheject', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'VALIDATE', target: 'torth', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'TENDER', target: 'eam', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'LAWFUL', target: 'fash', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'EARLESS', target: 'breap', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'EDITOR', target: 'stuilt', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'OCCASIONAL', target: 'assion', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'INFANTRY', target: 'seact', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'FORKLESS', target: 'fuman', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'PINKNESS', target: 'scain', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'BOUNDER', target: 'sligit', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'TRAILER', target: 'sulb', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'BREAKAGE', target: 'pold', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'VITALITY', target: 'agnet', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'FOREST', target: 'breek', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'HUSKINESS', target: 'fesist', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'STILTED', target: 'trool', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'ERROR', target: 'dulk', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'EATING', target: 'dreal', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'HANDSOME', target: 'tritic', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'ACTOR', target: 'lirt', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'BUTCHERY', target: 'dinal', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'FLOWER', target: 'skeak', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'LISTEN', target: 'marm', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'DRAINAGE', target: 'prear', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'SUCCESSION', target: 'fliffer', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'FOOTING', target: 'helf', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'COURTEOUS', target: 'trelect', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'WRECKAGE', target: 'walm', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'CLEARLY', target: 'hend', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'WINERY', target: 'doot', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'LEADER', target: 'gleep', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'CRUELLY', target: 'pusic', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'CATCHY', target: 'febt', related_prime: 'no', is_word: 'no', prime_transparency: undefined },
+        { prime: 'COWER', target: 'huy', related_prime: 'no', is_word: 'no', prime_transparency: undefined }
+    ];
+    var fillers = [
+        { prime: 'HINGE', target: 'iamp', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'BEAGLE', target: 'mayu', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'DRIBBLE', target: 'vock', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'BRASSIERE', target: 'lya', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'ELLIPSE', target: 'bave', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'BUGGY', target: 'gefy', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'MOOCH', target: 'aser', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'SPEAK', target: 'sloy', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'CROWN', target: 'hies', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'WHENCE', target: 'piwi', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'HENNA', target: 'jine', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'VINYL', target: 'sime', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'PRECINCT', target: 'vits', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'CANVASS', target: 'flup', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'REBUS', target: 'afid', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'YOBBO', target: 'isks', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'NOTCH', target: 'blin', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'BILLET', target: 'vobs', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'BILLING', target: 'slorp', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'SNAKE', target: 'stue', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'OPIUM', target: 'zoes', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'COUNSEL', target: 'phip', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'SPIRE', target: 'keun', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'CONCISE', target: 'osen', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'LEAGUE', target: 'bunj', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'STOREY', target: 'mib', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'PRICE', target: 'homb', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'SHODDY', target: 'itk', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'BANGLE', target: 'vunk', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'CORDON', target: 'afay', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'SCANSION', target: 'fice', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'QUOTA', target: 'runk', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'SPENT', target: 'pinf', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'GARTER', target: 'tilx', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'WEEVIL', target: 'hira', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'BRAIN', target: 'beo', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'WEIGH', target: 'toap', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'CHECKED', target: 'luty', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'AMBER', target: 'odt', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'EXAMS', target: 'bor', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'SPUNK', target: 'vuft', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'SODDEN', target: 'snan', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'FOSTER', target: 'bact', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'SPIKED', target: 'gix', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'SNICKER', target: 'kaze', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'SUBLIME', target: 'tews', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'BOOST', target: 'dutt', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'BRACE', target: 'toci', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'CRYSTAL', target: 'olen', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'ABSENCE', target: 'gemp', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'PRIVET', target: 'asne', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'WOLFRAM', target: 'shec', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'SULTAN', target: 'dium', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'ROTATE', target: 'amms', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'MOTET', target: 'brot', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'MUTTER', target: 'talf', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'GRATED', target: 'soin', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'CRISP', target: 'ealt', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'POLYP', target: 'heas', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'PARKY', target: 'hopa', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'DETAILED', target: 'fal', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'GUFFAW', target: 'mun', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'NOSING', target: 'vug', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'RECCE', target: 'boem', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'READY', target: 'ying', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'CORDITE', target: 'gep', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'LOGIC', target: 'gice', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'SPASM', target: 'wro', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'CANVAS', target: 'inp', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'COFFIN', target: 'heag', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'LIVING', target: 'puhs', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'GRIZZLED', target: 'rimz', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'INFORM', target: 'elts', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'GLOWING', target: 'fack', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'FRESCO', target: 'isky', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'SPELLING', target: 'frue', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'INDEED', target: 'ibb', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'PERHAPS', target: 'duil', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'PLAIN', target: 'erit', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'ACTING', target: 'mird', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'TITTER', target: 'fut', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'CATKIN', target: 'dold', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'TRYST', target: 'hixt', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'GRANTED', target: 'norp', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'PENSIVE', target: 'gex', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'INTRIGUE', target: 'somb', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'BANISH', target: 'tamn', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'FOIBLE', target: 'hars', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'GLAZED', target: 'deg', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'SMACKING', target: 'uhn', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'UTMOST', target: 'lole', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'MIRROR', target: 'beeg', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'HOTCHPOTCH', target: 'chus', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'TWERP', target: 'selt', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'DREAD', target: 'jick', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'TARGET', target: 'digh', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'QUICHE', target: 'anto', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'PALATE', target: 'olls', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'PARSLEY', target: 'fard', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'DISTURBED', target: 'falp', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'BATIK', target: 'vutt', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'PIDDLE', target: 'ravs', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'TRESTLE', target: 'juve', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'GUNWALE', target: 'fupi', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'CLINCH', target: 'lalb', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'JAUNDICE', target: 'teps', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'RABIES', target: 'ipon', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'LOTION', target: 'lano', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'PADDOCK', target: 'vulk', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'HUDDLE', target: 'dolo', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'WARRANT', target: 'yone', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'DARESAY', target: 'ajir', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'HONEYED', target: 'suve', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'COHORT', target: 'hyn', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'TARTAN', target: 'noth', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'DIGEST', target: 'kag', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'DISTANT', target: 'smip', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'HAUNT', target: 'pux', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'LILAC', target: 'unes', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'CROSS', target: 'cial', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'QUASH', target: 'icea', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'ARSENIC', target: 'doxy', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'REPENT', target: 'wigh', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'GALLEY', target: 'seps', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'TRUDGE', target: 'lell', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'RELIEF', target: 'bym', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'ORDERED', target: 'jofk', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'KNEAD', target: 'achi', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'CHORTLE', target: 'pawk', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'SCANT', target: 'chru', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'FABLE', target: 'pard', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'STINKING', target: 'deng', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'BLITHE', target: 'vone', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'PARTERRE', target: 'wock', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'GRENADE', target: 'havo', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'SCALD', target: 'vosy', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'NAKED', target: 'opug', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'YUCCA', target: 'ruch', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'CLOSED', target: 'cozm', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'COUCH', target: 'gier', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'PAISLEY', target: 'fere', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'RESTORED', target: 'het', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'BLATANT', target: 'bofu', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'SYNDROME', target: 'cug', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'OBSESSED', target: 'hoct', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'PICKET', target: 'divs', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'ENROL', target: 'peow', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'SEQUENT', target: 'lifa', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'FILTER', target: 'sely', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'SLUDGE', target: 'rapa', related_prime: 'no', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'PATHS', target: 'sidle', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'STOOL', target: 'carry', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'INDICT', target: 'spat', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'PRONG', target: 'heel', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'STATE', target: 'crook', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'STURGEON', target: 'doze', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'SQUAT', target: 'vice', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'PEONY', target: 'ware', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'WASTED', target: 'bass', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'REPEAL', target: 'sass', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'DIVIDE', target: 'lance', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'WREATH', target: 'tansy', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'CHUBBY', target: 'crab', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'ORIENT', target: 'brute', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'SHRINE', target: 'bench', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'LAMBAST', target: 'champ', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'HARRIER', target: 'chose', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'EXULT', target: 'woad', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'FETLOCK', target: 'mail', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'STARCH', target: 'fay', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'TINKER', target: 'bobby', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'FERTILE', target: 'axe', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'MUCOUS', target: 'tom', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'VANDAL', target: 'muse', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'MUCUS', target: 'match', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'LETTUCE', target: 'clip', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'SUSPECTS', target: 'yap', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'PERVADE', target: 'bland', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'TURBID', target: 'boil', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'NATTER', target: 'prune', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'CLUTTERED', target: 'such', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'BREVE', target: 'frank', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'ALOFT', target: 'fat', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'TRANQUIL', target: 'mine', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'CROTCHET', target: 'welch', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'RAISIN', target: 'prow', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'PARCEL', target: 'amber', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'QUARK', target: 'woe', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'SOVIET', target: 'curia', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'BRUNCH', target: 'orbit', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'DITTY', target: 'dads', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'HOSTED', target: 'novel', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'WARNING', target: 'sport', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'CREEL', target: 'soul', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'GULLET', target: 'kiss', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'TALON', target: 'genre', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'VEXING', target: 'coil', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'MOLLUSC', target: 'slam', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'SIGHT', target: 'wines', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'ABIDE', target: 'plain', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'NOTICE', target: 'whet', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'VOICE', target: 'taunt', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'SWATH', target: 'skirt', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'QUIRE', target: 'boll', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'WATCHING', target: 'lily', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'COURSES', target: 'dash', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'MONGER', target: 'iamb', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'REMIT', target: 'grip', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'DRAGON', target: 'mike', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'MOURN', target: 'tee', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'RHUBARB', target: 'edit', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'TRAVELLED', target: 'odd', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'BATTEN', target: 'greys', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'FLASH', target: 'rabid', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'CACHE', target: 'minx', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'BRUSH', target: 'print', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'WAGON', target: 'cult', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'TOPIC', target: 'led', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'SNOUT', target: 'tear', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'PLAIT', target: 'cube', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'CHAPTER', target: 'tim', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'PSEUDO', target: 'hinge', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'SINUS', target: 'cam', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'TUBING', target: 'gun', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'SHAPES', target: 'expo', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'KINDRED', target: 'fob', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'SAMPLING', target: 'check', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'INVITE', target: 'jones', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'DEPRAVED', target: 'dad', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'SHINGLE', target: 'vamp', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'GREETING', target: 'hone', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'BARRACKS', target: 'dry', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'LYING', target: 'genus', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'SKIRTING', target: 'valid', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'ROVED', target: 'quilt', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'LISTED', target: 'ulcer', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'SNITCH', target: 'lobe', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'SEPOY', target: 'info', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'MATINS', target: 'ambit', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'EXACT', target: 'arch', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'REFUTE', target: 'posh', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'DECEASED', target: 'ethos', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'PREPARE', target: 'hobby', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'SIZZLE', target: 'query', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'GUILE', target: 'grail', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'ONSLAUGHT', target: 'viol', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'SPRIT', target: 'media', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'NAVEL', target: 'topaz', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'REASON', target: 'less', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'SCHEDULE', target: 'sully', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'WIRING', target: 'famed', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'CARRION', target: 'truck', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'LICENCE', target: 'skiff', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'RELAXED', target: 'lean', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'FORGED', target: 'sulk', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'VIGIL', target: 'paris', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'DOLDRUMS', target: 'croon', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'GLOBE', target: 'nip', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'APPRAISE', target: 'tinge', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'NIFTY', target: 'lade', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'PHEASANT', target: 'pack', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'MARBLE', target: 'stem', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'WOUND', target: 'must', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'CRYPT', target: 'limit', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'SHERPAS', target: 'lop', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'BRETHREN', target: 'whisk', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'WEATHER', target: 'fin', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'SNORT', target: 'frost', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'SMILE', target: 'ouch', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'HOOKY', target: 'firm', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'MADAM', target: 'muff', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'SCRAPE', target: 'howdy', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'THRASH', target: 'nib', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'RAZOR', target: 'how', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'UNCTUOUS', target: 'adder', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'GUINEA', target: 'plush', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'GLEAM', target: 'dwarf', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'MENTHOL', target: 'huff', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'CRUMPLED', target: 'mink', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'GRADE', target: 'rod', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'GANGLING', target: 'spate', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'SYLVAN', target: 'owl', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'INSTINCT', target: 'exams', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'SINUOUS', target: 'telex', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'COVERT', target: 'quid', related_prime: 'no', is_word: 'yes', prime_transparency: 'undefined' },
+        { prime: 'BANTER', target: 'bant', related_prime: 'yes', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'STAMMER', target: 'stam', related_prime: 'yes', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'ANCHOR', target: 'anch', related_prime: 'yes', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'ARRIVE', target: 'arr', related_prime: 'yes', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'CISTERN', target: 'cist', related_prime: 'yes', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'BELFRY', target: 'belf', related_prime: 'yes', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'CHERISH', target: 'cher', related_prime: 'yes', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'BRAZIER', target: 'braz', related_prime: 'yes', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'COURAGE', target: 'cour', related_prime: 'yes', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'CAMPHOR', target: 'camph', related_prime: 'yes', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'CEMENT', target: 'cem', related_prime: 'yes', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'CRINKLE', target: 'crink', related_prime: 'yes', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'VILLAGE', target: 'vill', related_prime: 'yes', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'DRASTIC', target: 'drast', related_prime: 'yes', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'CONFER', target: 'conf', related_prime: 'yes', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'CAPTION', target: 'capt', related_prime: 'yes', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'CLOBBER', target: 'clob', related_prime: 'yes', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'DERIVE', target: 'der', related_prime: 'yes', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'FISSURE', target: 'fiss', related_prime: 'yes', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'STRUGGLING', target: 'strug', related_prime: 'yes', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'GRUESOME', target: 'grues', related_prime: 'yes', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'INFANT', target: 'inf', related_prime: 'yes', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'FLURRY', target: 'flur', related_prime: 'yes', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'LAUNDER', target: 'laund', related_prime: 'yes', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'MERCHANT', target: 'merch', related_prime: 'yes', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'GASTRIC', target: 'gast', related_prime: 'yes', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'JERSEY', target: 'jers', related_prime: 'yes', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'MOTIVE', target: 'mot', related_prime: 'yes', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'MONSTER', target: 'mon', related_prime: 'yes', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'LEOPARD', target: 'leop', related_prime: 'yes', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'FUNCTION', target: 'funct', related_prime: 'yes', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'KITCHEN', target: 'kitch', related_prime: 'yes', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'KETTLE', target: 'kett', related_prime: 'yes', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'SQUEAMISH', target: 'squeam', related_prime: 'yes', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'PEBBLE', target: 'peb', related_prime: 'yes', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'SUBSTANCE', target: 'subst', related_prime: 'yes', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'SCISSOR', target: 'sciss', related_prime: 'yes', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'JUNIOR', target: 'juni', related_prime: 'yes', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'PLASTER', target: 'plast', related_prime: 'yes', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'QUEASY', target: 'queas', related_prime: 'yes', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'PRETENCE', target: 'pret', related_prime: 'yes', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'ORNATE', target: 'orn', related_prime: 'yes', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'REALTY', target: 'realt', related_prime: 'yes', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'POODLE', target: 'pood', related_prime: 'yes', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'REPTILE', target: 'rept', related_prime: 'yes', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'HAZARD', target: 'haz', related_prime: 'yes', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'ROMANCE', target: 'rom', related_prime: 'yes', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'SCURRY', target: 'scur', related_prime: 'yes', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'THITHER', target: 'thith', related_prime: 'yes', is_word: 'no', prime_transparency: 'undefined' },
+        { prime: 'THISTLE', target: 'thist', related_prime: 'yes', is_word: 'no', prime_transparency: 'undefined' }
+    ];
+
+    var stim1 = stim1.concat(fillers);
+    var stim2 = stim2.concat(fillers);
+    let x1 = stim1.length;
+    let x2 = stim2.length;
+
+    var stim_list = [stim1, stim2];
+    var rand_stim_sel = Math.floor(Math.random() * stim_list.length);
+    // var rand_stim_sel = 1;
+    var stimuli = jsPsych.randomization.shuffle(stim_list[rand_stim_sel]);
+    var split1 = Math.ceil(stimuli.length / 3);
+    var split2 = Math.ceil(2 * stimuli.length / 3)
+    var block1 = stimuli.slice(0, split1);
+    var block2 = stimuli.slice(split1, split2);
+    var block3 = stimuli.slice(split2, stimuli.length);
+
+    // ***********************************************************************
+    // ****************** WELCOME, CONSENT & QUESTIONNAIRE *******************
+    // *********************************************************************** 
+
+    var welcome = {
+        type: 'html-button-response',
+        stimulus: '<p>Thank you for participating in this experiment! </p>' +
+            '<p>You should be participating on a computer or laptop. If you\'re on a tablet or iPhone,</p>' +
+            '<p>close this tab and restart with the same link on a computer or laptop.</p>' +
+            '<p>Before we begin, please take a moment to read through and sign the consent form.</p>',
+        choices: ['Continue']
+    }
+    timeline.push(welcome)
+
+    var consent1 = {
+        type: 'html-button-response',
+        stimulus: '<p>This is the consent form for participation in the study "What\'s in a word?"</p>' +
+            '<p>The principal investigator for this study is Patience R. Stevens (pstevens@andrew.cmu.edu), a graduate student in CMU Psychology.</p>' +
+            '<p>The faculty advisor for this study is David C. Plaut, a professor in CMU Psychology & the Neuroscience Institute.</p>',
+        choices: ['Continue']
+    }
+    timeline.push(consent1)
+
+    var consent2 = {
+        type: 'html-button-response',
+        stimulus: "<p><strong>Study Purpose: </strong>The purpose of the study is to investigate how the brain makes use of stem-suffix structure to recognize complex words. </p>" +
+            "<p><strong>Summary: </strong>The experiment consists of a computer task in which you respond to words that appear on the screen, as quickly and as accurately as possible. </p>" +
+            "<p>The actions are not unlike those carried out on any personal computer: pressing keys on the keyboard in response to things on the screen. </p>",
+        choices: ['Continue']
+    }
+    timeline.push(consent2)
+
+    var consent3 = {
+        type: 'html-button-response',
+        stimulus: "<p><strong>Procedures: </strong>The experiment will take place entirely on the computer. First, detailed instructions</p>" +
+            "<p>will be given, and some practice trials will be provided to familiarize you with the task. This is a good</p>" +
+            "<p>time to ask questions if you are not sure about what to do, but you are also free to ask questions at any time throughout the experiment</p>" +
+            "<p>(If you are testing remotely, you can ask a question by emailing pstevens@andrew.cmu.edu).</p>" +
+            "<p>During the task, words will appear on the screen. The instructions will tell you how to respond, and what keys to press.</p>" +
+            "<p>You will have at least one opportunity to take a short break during this study.</p>",
+        choices: ['Continue']
+    }
+    timeline.push(consent3)
+
+    var consent4 = {
+        type: 'html-button-response',
+        stimulus: "<p><strong>Procedures (cont'd): </strong>All keyboard data will be recorded (including what you press and how long it takes you to respond).</p>" +
+            "<p>The study will last approximately 45 minutes, with an absolute maximum duration of one hour.</p>" +
+            "<p><strong>Participant Requirements: </strong>You must be at least 18 years of age to participate in the study.</p>" +
+            "<p>You must also be a native speaker of English, and have normal or corrected-to-normal vision.</p>",
+        //"<p>You must not be colorblind, as discriminating between colors is an important aspect of the study.</p>",
+        choices: ['Continue']
+    }
+    timeline.push(consent4)
+
+    var consent5 = {
+        type: 'html-button-response',
+        stimulus: "<p><strong>Risks: </strong>The risks and discomfort associated with participation in this study are</p>" +
+            "<p>no greater than those ordinarily encountered in daily life or while using a computer. </p>" +
+            "<p><strong>Benefits: </strong>There may be no personal benefit from your participation in the study,</p>" +
+            "<p>but the knowledge received may be of value to humanity.</p>",
+        choices: ['Continue']
+    }
+    timeline.push(consent5)
+
+    var consent6 = {
+        type: 'html-button-response',
+        stimulus: "<p><strong>Compensation and Costs: </strong>There is no compensation for participation in this study.</p>" +
+            "<p>If you are participating as part of the Carnegie Mellon Psychology participant pool, then you will receive one (1)</p>" +
+            "<p>credit for your participation. Contact Erin Donahoe (donahoe@andrew.cmu.edu) for more information.</p>" +
+            "<p>There will be no cost to you if you participate in this study.</p>" +
+            "<p><strong>Future Use of Information: </strong>In the future, once we have removed all identifiable information</p>" +
+            "<p>from your responses, we may use the data for our future research studies, or we may distribute the data to other </p>" +
+            "<p>investigators for their research studies. We would do this without getting additional informed consent from you (or your</p>" +
+            "<p>legally authorized representative). Sharing of data with other researchers will only be done in such a manner that you</p>" +
+            "<p>will not be identified. </p>",
+        choices: ['Continue']
+    }
+    timeline.push(consent6)
+
+    var consent7 = {
+        type: 'html-button-response',
+        stimulus: "<p><strong>Confidentiality: </strong>By participating in the study, you understand and agree that Carnegie</p>" +
+            "<p>Mellon may be required to disclose your consent form, data and other personally identifiable information as required by law,</p>" +
+            "<p>regulation, subpoena or court order. Otherwise, your confidentiality will be maintained in the following manner:  </p>" +
+            "<p>Your data and consent form will be stored separately. Your research data will be stored on a secure server on Carnegie Mellon</p>" +
+            "<p>property. By participating, you understand and agree that the data and information gathered during this study may be used by</p>" +
+            "<p>Carnegie Mellon and published and/or disclosed by Carnegie Mellon to others outside of Carnegie Mellon. However, your name,</p>" +
+            "<p>address, contact information and other direct personal identifiers will not be mentioned in any such publication or dissemination</p>" +
+            "<p>of the research data and/or results by Carnegie Mellon. Note that per regulation all research data must be kept for a minimum of 3 years.</p>" +
+            "<p>The researchers will take the following steps to protect participants' identities during this study: (1) Each participant will </p>" +
+            "<p>be assigned a number; (2) The researchers will record any data collected during the study by number, not by name; (3) Any original</p>" +
+            "<p>recordings or data files will be stored in a secured location accessed only by authorized researchers. </p>",
+        choices: ['Continue']
+    }
+    timeline.push(consent7)
+
+    var consent8 = {
+        type: 'html-button-response',
+        stimulus: "<p><strong>Rights: </strong> Your participation is voluntary. You are free to stop your participation at any</p>" +
+            "<p>point. Refusal to participate or withdrawal of your consent or discontinued participation in the study will not result in</p>" +
+            "<p>any penalty or loss of benefits or rights to which you might otherwise be entitled. The Principal Investigator may at his/her</p>" +
+            "<p>discretion remove you from the study for any of a number of reasons. In such an event, you will not suffer any penalty or loss </p>" +
+            "<p>of benefits or rights which you might otherwise be entitled. </p>",
+        choices: ['Continue']
+    }
+    timeline.push(consent8)
+
+    var consent9 = {
+        type: 'html-button-response',
+        stimulus: "<p><strong>Right to Ask Questions, and Contact Information: </strong> If you have any questions about this study, you</p>" +
+            "<p>should feel free to ask them now, by asking the experimenter if you are participating in person, or by contacting the </p>" +
+            "<p>Principal Investigator  (pstevens@andrew.cmu.edu) if you are participating online. If you have questions later,</p>" +
+            "<p>desire additional information, or wish to withdraw your participation, please contact the Principal Investigator by mail, phone or </p>" +
+            "<p>e-mail in accordance with the contact information listed on the first page of this consent.</p>" +
+            "<p>If you have questions pertaining to your rights as a research participant; or to report concerns to this study, you should contact the</p>" +
+            "<p>Office of Research Integrity and Compliance at Carnegie Mellon University. Email: irb-review@andrew.cmu.edu . Phone: 412-268-1901 or 412-268-5460. </p>",
+        choices: ['Continue']
+    }
+    timeline.push(consent9)
+
+    var consent10 = {
+        type: 'html-button-response',
+        stimulus: "<p><strong>Voluntary Consent: </strong> By signing on the next page, you agree that the above information has been</p>" +
+            "<p>explained to you and all your current questions have been answered. You are encouraged ask questions about any aspect of</p>" +
+            "<p>this research study during the course of the study and in the future. By signing this form, you agree to participate in </p>" +
+            "<p>this research study. A copy of the consent form will be given to you upon request (email the principal investigator, pstevens@andrew.cmu.edu). </p>",
+        choices: ['Continue']
+    }
+    timeline.push(consent10)
+
+    var sign = {
+        type: 'survey-text',
+        preamble: '<p>Write your 6-number Sona ID (from the Psychology participant pool) below.</p>' +
+            '<p>NOTE: Your ID should look something like "147805", <strong>NOT</strong> a letter string like "MjpFeH6A".</p>',
+        questions: [
+            { prompt: "Your 6-number ID code: ", name: "SonaID" }
+        ],
+        data: { block: "subjnum" },
+        button_label: 'Submit'
+    };
+    timeline.push(sign)
+
+    var clarification = {
+        type: 'html-button-response',
+        stimulus: '<p>Please note that the process to grant credit for participating in this experiment is not </p>' +
+            '<p>automatized, and may take up to 48 hours.</p>',
+        choices: ['I understand that I will not receive credit immediately']
+    }
+    timeline.push(clarification);
+
+    var quest_transition = {
+        type: 'html-button-response',
+        stimulus: '<p>Now please answer a few questions, so we can confirm </p>' +
+            '<p>your eligibility for this experiment.</p>',
+        choices: ['Continue']
+    }
+    timeline.push(quest_transition);
+
+    var question1 = {
+        type: 'html-button-response',
+        stimulus: '<p>Do you have normal or corrected-to-normal (glasses, contacts) vision? </p>',
+        choices: ['I have normal or corrected vision', 'I do not have normal or corrected vision']
+    }
+    timeline.push(question1);
+
+    // var question2 = {
+    //     type: 'html-button-response',
+    //     stimulus: '<p>Are you colorblind?</p>',
+    //     choices: ['I am colorblind', 'I am not colorblind']
+    // }
+    // timeline.push(question2);
+
+    var question3 = {
+        type: 'html-button-response',
+        stimulus: '<p>Are you a native speaker / reader of English?</p>' +
+            '<p>(Note: if you are bilingual and English is the first language you learned to read in, and</p>' +
+            '<p>the primary language that you read in generally, you can answer "yes" to this question.)</p>',
+        choices: ['I am a native speaker of English', 'I am not a native speaker of English']
+    }
+    timeline.push(question3);
+
+    timeline.push({
+        type: 'fullscreen',
+        fullscreen_mode: true,
+        message: '<p>When you click below, the browser will go into full screen mode and the experiment will begin.</p>' +
+            '<p>If for any reason you must exit the experiment before finishing, press the escape key and then close the tab.</p>'
+    });
+
+    var calib_intro = {
+        type: 'html-button-response',
+        stimulus: '<p>Now we\'ll do a quick size calibration, so we present text</p>' +
+            '<p>in the right font size for your screen.</p> ',
+        choices: ['Continue to size calibration']
+    }
+    timeline.push(calib_intro);
+
+    let cm_resize = {
+        type: "virtual-chinrest",
+        blindspot_reps: 0,
+        resize_units: "cm",
+        pixels_per_unit: 44,
+    };
+    timeline.push(cm_resize)
+
+
+    var instructions_intro = {
+        type: 'html-button-response',
+        stimulus: '<p>Thank you! Now we will begin the instructions for this experiment.</p>',
+        choices: ['Continue to instructions']
+    }
+    timeline.push(instructions_intro);
+
+
+
+
+    // ***********************************************************************
+    // ******************* INSTRUCTIONS & PRACTICE TRIALS ********************
+    // ***********************************************************************
+
+    var all_practice = [];
+
+    var instructions_practice1 = {
+        type: 'html-keyboard-response',
+        stimulus: '<p>Each screen will show a letter string in lowercase for half a second.</p>' +
+            '<p>For each string, answer the question, "Is this a word?"</p>' +
+            '<p>Press the Enter key to see additional instructions</p>',
+        choices: ['Enter']
+    }
+    all_practice.push(instructions_practice1);
+
+    var instructions_practice1b = {
+        type: 'html-keyboard-response',
+        stimulus: '<p>Try to respond as <strong>quickly</strong> and as <strong>accurately</strong> as possible.</p>' +
+            '<p>You can take no longer than ' + response_dur / 1000 + ' seconds to respond. </p>' +
+            '<p>You will sometimes hit patches where the answer is the same for several trials, but it is important to <strong>stay attentive!</strong></p>' +
+            '<p>Press the Enter key to see additional instructions</p>',
+        choices: ['Enter']
+    }
+    all_practice.push(instructions_practice1b);
+
+    var instructions_practice2 = {
+        type: 'html-keyboard-response',
+        stimulus: '<p>Note that the entire experiment should take about 45 minutes.</p>' +
+            '<p>Find a comfortable sitting position where you can easily see the screen and reach the response keys.</p>' +
+            '<p>Choose a quiet location where there is minimal chance of you being distracted, and don\'t listen to music.</p>' +
+            '<p>Please do not walk away from your computer until the experiment is complete. There will be three ' + break_dur / 1000 + '-second breaks.</p>' +
+            '<p>Press the Enter key to see additional instructions. </p>',
+        choices: ['Enter']
+    }
+    all_practice.push(instructions_practice2);
+
+    var instructions_practice3 = {
+        type: 'html-keyboard-response',
+        stimulus: '<p>For each trial, answer the question, "Is this a word?"</p>' +
+            '<p>Press the ' + yeskey.toUpperCase() + ' key if the string is a word.</p>' +
+            '<p>Press the ' + nokey.toUpperCase() + ' key if the string is NOT a word.</p>' +
+            '<p>Press the Enter key to try out a few practice trials. </p>',
+        choices: ['Enter']
+    }
+    all_practice.push(instructions_practice3);
+
+    var practice_trials = {
+        timeline_variables: practice,
+        timeline: [
+            {
+                type: 'psychophysics',
+                stimuli: [iti_blank, fix_cross, hash_mask,
+                    {
+                        obj_type: 'text',
+                        content: jsPsych.timelineVariable('prime'),
+                        font: "14px 'Courier'",
+                        text_color: 'black',
+                        show_start_time: iti + fix_dur + mask_dur,
+                        show_end_time: iti + fix_dur + mask_dur + prime_dur
+                    },
+                    {
+                        obj_type: 'text',
+                        content: jsPsych.timelineVariable('target'),
+                        font: "24px 'Courier'",
+                        text_color: 'black',
+                        show_start_time: iti + fix_dur + mask_dur + prime_dur,
+                        show_end_time: iti + fix_dur + mask_dur + prime_dur + target_dur
+                    }
+
+                ],
+                background_color: "white",
+                choices: ['f', 'j'],
+                response_start_time: iti + fix_dur + mask_dur + prime_dur,
+                trial_duration: iti + fix_dur + mask_dur + prime_dur + response_dur,
+                data: {
+                    'sequence_type': 'practice',
+                    is_word: jsPsych.timelineVariable('is_word'),
+                    related_prime: jsPsych.timelineVariable('related_prime'),
+                    prime_transparency: jsPsych.timelineVariable('prime_transparency'),
+                    target: jsPsych.timelineVariable('target'),
+                    prime: jsPsych.timelineVariable('prime')
+                },
+                on_finish: function (data) {
+                    if (data.is_word == 'yes') {
+                        var correct = data.key_press == yeskey;
+                    } else {
+                        var correct = data.key_press == nokey;
+                    }
+                    data.correct = correct;
+                }
+            }
+        ]
+    }
+    all_practice.push(practice_trials)
+
+    var practice_debrief = {
+        type: 'html-button-response',
+        choices: ['Read Instructions Again', 'Start Experiment'],
+        stimulus: function () {
+            var pracdata = jsPsych.data.get().filter({ 'sequence_type': 'practice' }).last(16);
+            var accuracy = Math.floor(pracdata.filter({ correct: true }).count() / pracdata.count() * 100);
+            var mn_rt = pracdata.select('rt').mean();
+
+            var msg = "<p>You responded correctly <strong>" + accuracy + "%</strong> of the time.</p>" +
+                "<p>Your mean response time was " + Math.round(mn_rt) + " milliseconds.</p>";
+
+            if (accuracy > 85 && mn_rt < 720) {
+                msg += "<p>Great job! Looks like you are ready to continue to the real thing.</p>"
+            } else if (accuracy > 85 && mn_rt >= 720) {
+                msg += "<p>Looks like you understand the task! But try to respond more quickly.</p>"
+            } else if (accuracy <= 85 && mn_rt < 720) {
+                msg += "<p>You might want to read through the instructions again to make sure that you understand what you need to do.</p>"
+            } else if (accuracy <= 85 && mn_rt >= 720) {
+                msg += "<p>You might want to read through the instructions again to make sure that you understand what you need to do. Also, try to respond more quickly!</p>"
+            }
+            msg += "<p>If you'd like to read the instructions again, press the Read Instructions Again button. If you are ready to start, press Start Experiment.</p>"
+
+            return msg;
+        },
+    }
+    all_practice.push(practice_debrief);
+
+    var repeat_practice = {
+        timeline: all_practice,
+        loop_function: function (data) {
+            return data.last(1).values()[0].response == 0;
+        }
+    }
+    timeline.push(repeat_practice);
+
+    // ***********************************************************************
+    // ************************* EXPERIMENT SEQUENCE *************************
+    // ***********************************************************************
+
+    var block1_trials = {
+        timeline_variables: block1,
+        timeline: [
+            {
+                type: 'psychophysics',
+                stimuli: [iti_blank, fix_cross, hash_mask,
+                    {
+                        obj_type: 'text',
+                        content: jsPsych.timelineVariable('prime'),
+                        font: "14px 'Courier'",
+                        text_color: 'black',
+                        show_start_time: iti + fix_dur + mask_dur,
+                        show_end_time: iti + fix_dur + mask_dur + prime_dur
+                    },
+                    {
+                        obj_type: 'text',
+                        content: jsPsych.timelineVariable('target'),
+                        font: "24px 'Courier'",
+                        text_color: 'black',
+                        show_start_time: iti + fix_dur + mask_dur + prime_dur,
+                        show_end_time: iti + fix_dur + mask_dur + prime_dur + target_dur
+                    }
+
+                ],
+                background_color: "white",
+                choices: ['f', 'j'],
+                response_start_time: iti + fix_dur + mask_dur + prime_dur,
+                trial_duration: iti + fix_dur + mask_dur + prime_dur + response_dur,
+                data: {
+                    'sequence_type': 'bk1',
+                    is_word: jsPsych.timelineVariable('is_word'),
+                    related_prime: jsPsych.timelineVariable('related_prime'),
+                    prime_transparency: jsPsych.timelineVariable('prime_transparency'),
+                    target: jsPsych.timelineVariable('target'),
+                    prime: jsPsych.timelineVariable('prime')
+                },
+                on_finish: function (data) {
+                    if (data.is_word == 'yes') {
+                        var correct = data.key_press == yeskey;
+                    } else {
+                        var correct = data.key_press == nokey;
+                    }
+                    data.correct = correct;
+                }
+            }
+        ],
+        on_start: function () { $('body').css('cursor', 'none') },
+        on_finish: function () { $('body').css('cursor', 'default') }
+    }
+    timeline.push(block1_trials)
+
+    var pause = {
+        type: 'html-keyboard-response',
+        stimulus: '',
+        choices: ['Enter'],
+        trial_duration: iti
+    }
+    timeline.push(pause)
+
+    var break1 = {
+        type: 'html-keyboard-response',
+        stimulus: '<p>You\'re 33% done! Take a ' + break_dur / 1000 + '-second break.</p>' +
+            '<p>The experiment will continue automatically after ' + break_dur / 1000 + ' seconds.</p>' +
+            '<p>Press the Enter key to skip this break and continue to next trials.</p>',
+        choices: ['Enter'],
+        trial_duration: break_dur
+    }
+    timeline.push(break1)
+
+    var block2_trials = {
+        timeline_variables: block2,
+        timeline: [
+            {
+                type: 'psychophysics',
+                stimuli: [iti_blank, fix_cross, hash_mask,
+                    {
+                        obj_type: 'text',
+                        content: jsPsych.timelineVariable('prime'),
+                        font: "14px 'Courier'",
+                        text_color: 'black',
+                        show_start_time: iti + fix_dur + mask_dur,
+                        show_end_time: iti + fix_dur + mask_dur + prime_dur
+                    },
+                    {
+                        obj_type: 'text',
+                        content: jsPsych.timelineVariable('target'),
+                        font: "24px 'Courier'",
+                        text_color: 'black',
+                        show_start_time: iti + fix_dur + mask_dur + prime_dur,
+                        show_end_time: iti + fix_dur + mask_dur + prime_dur + target_dur
+                    }
+
+                ],
+                background_color: "white",
+                choices: ['f', 'j'],
+                response_start_time: iti + fix_dur + mask_dur + prime_dur,
+                trial_duration: iti + fix_dur + mask_dur + prime_dur + response_dur,
+                data: {
+                    'sequence_type': 'bk2',
+                    is_word: jsPsych.timelineVariable('is_word'),
+                    related_prime: jsPsych.timelineVariable('related_prime'),
+                    prime_transparency: jsPsych.timelineVariable('prime_transparency'),
+                    target: jsPsych.timelineVariable('target'),
+                    prime: jsPsych.timelineVariable('prime')
+                },
+                on_finish: function (data) {
+                    if (data.is_word == 'yes') {
+                        var correct = data.key_press == yeskey;
+                    } else {
+                        var correct = data.key_press == nokey;
+                    }
+                    data.correct = correct;
+                }
+            }
+        ],
+        on_start: function () { $('body').css('cursor', 'none') },
+        on_finish: function () { $('body').css('cursor', 'default') }
+    }
+    timeline.push(block2_trials)
+
+    var pause2 = {
+        type: 'html-keyboard-response',
+        stimulus: '',
+        choices: ['Enter'],
+        trial_duration: iti
+    }
+    timeline.push(pause2)
+
+    var break2 = {
+        type: 'html-keyboard-response',
+        stimulus: '<p>You\'re 67% done! Take a ' + break_dur / 1000 + '-second break.</p>' +
+            '<p>The experiment will continue automatically after ' + break_dur / 1000 + ' seconds.</p>' +
+            '<p>Press the Enter key to skip this break and continue to next trials.</p>',
+        choices: ['Enter'],
+        trial_duration: break_dur
+    }
+    timeline.push(break2)
+
+    var block3_trials = {
+        timeline_variables: block3,
+        timeline: [
+            {
+                type: 'psychophysics',
+                stimuli: [iti_blank, fix_cross, hash_mask,
+                    {
+                        obj_type: 'text',
+                        content: jsPsych.timelineVariable('prime'),
+                        font: "14px 'Courier'",
+                        text_color: 'black',
+                        show_start_time: iti + fix_dur + mask_dur,
+                        show_end_time: iti + fix_dur + mask_dur + prime_dur
+                    },
+                    {
+                        obj_type: 'text',
+                        content: jsPsych.timelineVariable('target'),
+                        font: "24px 'Courier'",
+                        text_color: 'black',
+                        show_start_time: iti + fix_dur + mask_dur + prime_dur,
+                        show_end_time: iti + fix_dur + mask_dur + prime_dur + target_dur
+                    }
+
+                ],
+                background_color: "white",
+                choices: ['f', 'j'],
+                response_start_time: iti + fix_dur + mask_dur + prime_dur,
+                trial_duration: iti + fix_dur + mask_dur + prime_dur + response_dur,
+                data: {
+                    'sequence_type': 'bk3',
+                    is_word: jsPsych.timelineVariable('is_word'),
+                    related_prime: jsPsych.timelineVariable('related_prime'),
+                    prime_transparency: jsPsych.timelineVariable('prime_transparency'),
+                    target: jsPsych.timelineVariable('target'),
+                    prime: jsPsych.timelineVariable('prime')
+                },
+                on_finish: function (data) {
+                    if (data.is_word == 'yes') {
+                        var correct = data.key_press == yeskey;
+                    } else {
+                        var correct = data.key_press == nokey;
+                    }
+                    data.correct = correct;
+                }
+            }
+        ],
+        on_start: function () { $('body').css('cursor', 'none') },
+        on_finish: function () { $('body').css('cursor', 'default') }
+    }
+    timeline.push(block3_trials)
+
+    timeline.push({
+        type: 'fullscreen',
+        fullscreen_mode: false
+    });
+
+    var postQs_start = {
+        type: 'html-keyboard-response',
+        stimulus: '<p>You\'re done! Nice job.</p>' +
+            '<p>Please answer three quick questions about your experience in this experiment.</p>' +
+            '<p>NOTE: Please continue to the very end of this debrief (a blank screen).</p>' +
+            '<p>Press the Enter key to start.</p>',
+        choices: ['Enter']
+    }
+    timeline.push(postQs_start)
+    var postQs_1 = {
+        type: 'html-keyboard-response',
+        stimulus: '<p>Question 1</p>' +
+            '<p>During each trial of the experiment, you were shown a cross (+), a row of hash marks (####) and then a</p>' +
+            '<p>word or nonword. Did you see anything else on any of the trials?</p>' +
+            '<p>**Press S if you saw anything else, K if you didn\'t.**</p>',
+        choices: ['s', 'k']
+    }
+    timeline.push(postQs_1)
+    var postQs_2 = {
+        type: 'survey-text',
+        preamble: '<p>Question 2</p>' +
+            'If you saw anything else, describe what you saw.</p>' +
+            'If you didn\'t see anything, just write "na".</p>',
+        questions: [
+            { prompt: "Describe what you saw: ", name: "descripQ2" }
+        ],
+        button_label: 'Submit'
+    };
+    timeline.push(postQs_2)
+    var postQs_3 = {
+        type: 'survey-text',
+        preamble: '<p>Question 3</p>' +
+            'If you saw anything else, describe how often you saw it (a few trials? All trials?).</p>' +
+            'If you didn\'t see anything, just write "na".</p>',
+        questions: [
+            { prompt: "Describe how often you saw something else: ", name: "descriptQ3" }
+        ],
+        button_label: 'Submit'
+    };
+    timeline.push(postQs_3)
+    var postQs_4 = {
+        type: 'survey-text',
+        preamble: '<p>Question 3</p>' +
+            'If you saw an extra word, how often could you recognize what word was shown? (a few trials? Never?).</p>' +
+            'If you didn\'t see anything, just write "na".</p>',
+        questions: [
+            { prompt: "Describe how often you saw something else: ", name: "descriptQ4" }
+        ],
+        button_label: 'Submit'
+    };
+    timeline.push(postQs_4)
+
+    var debrief1 = {
+        type: 'html-keyboard-response',
+        choices: ['Enter'],
+        stimulus: function () {
+            var message = "<p>Thank you! You will now be debriefed on what this experiment is about.</p>" +
+                "<p>NOTE: Please continue to the very end of this debrief (a blank screen).</p>" +
+                "<p>**Press Enter for next page**.</p>";
+            return message;
+        }
+    }
+    timeline.push(debrief1);
+
+    var debrief2 = {
+        type: 'html-keyboard-response',
+        choices: ['Enter'],
+        stimulus: function () {
+            var message = "<p>When you read, you have to access the meanings of many individual words. </p>" +
+                "<p>In the case of complex words (words containing stems, prefixes, and suffixes) your visual system </p>" +
+                "<p>can use the structure of the word to get to the correct meaning more quickly. </p>" +
+                "<p>**Press Enter for next page**.</p>";
+            return message;
+        }
+    }
+    timeline.push(debrief2);
+
+
+    var debrief3 = {
+        type: 'html-keyboard-response',
+        choices: ['Enter'],
+        stimulus: function () {
+            var message = "<p>In this study, we're asking whether structure is more important for words containing </p>" +
+                "<p>stems with more consistent meanings, compared with words containing stems with less consistent meanings. </p>" +
+                "<p>For example, if the stem TRUST means the same thing more consistently across the words it appears in, like </p>" +
+                "<p>ENTRUST and UNTRUSTWORTHY, when compared with the stem WHISK in WHISKER and WHISKEY, then you might expect your</p>" +
+                "<p>brain to rely on the word's structure more for TRUSTING than for WHISKING.  </p>" +
+                "<p>**Press Enter for next page**.</p>";
+
+            return message;
+        }
+    }
+    timeline.push(debrief3);
+
+    var debrief4 = {
+        type: 'html-keyboard-response',
+        choices: ['Enter'],
+        stimulus: function () {
+            var rel_rt = jsPsych.data.get().filter({ related_prime: 'yes', is_word: 'yes', correct: true }).select('rt').mean();
+            var unrel_rt = jsPsych.data.get().filter({ related_prime: 'no', is_word: 'yes', correct: true }).select('rt').mean();
+            var message = "<p>You may have noticed that there was an extra word flashed briefly between the #### and the target word</p>" +
+                "<p>on each trial. In some trials, those briefly flashed prime words were morphologically related to the target </p>" +
+                "<p>(for example, 'TEACHER' flashed before 'teach'), and in some they were unrelated ('CORNER' before 'TEACH').</p>" +
+                "<p>The typical pattern of results is that people are faster to recognize words after related primes than after unrelated primes.</p>" +
+                "<p>Your average correct response time was " + Math.round(rel_rt) +
+                " milliseconds after related primes, and " + Math.round(unrel_rt) + " milliseconds after unrelated primes.</p>" +
+                "<p>Does your data line up with the expected pattern?</p>" +
+                "<p>**Press Enter for next page**.</p>";
+
+            return message;
+        }
+    }
+    timeline.push(debrief4);
+
+    var debrief5 = {
+        type: 'html-keyboard-response',
+        choices: ['Enter'],
+        stimulus: function () {
+            var message = "<p>By subtracting reaction times for the word shown with a related prime from reaction times with an unrelated prime,</p>" +
+                "<p>we can estimate how much your brain makes use of the related prime to</p>" +
+                "<p>help recognize the target. Then we can compare those differences across conditions to see whether the brain is relying </p>" +
+                "<p>on word structure more for words with consistent stems (TRUSTING) than words with inconsistent stems (WHISKING). </p>" +
+                "<p>**Press Enter for next page**.</p>";
+
+            return message;
+        }
+    }
+    timeline.push(debrief5);
+
+    var debrief6 = {
+        type: 'html-keyboard-response',
+        choices: ['Enter'],
+        stimulus: function () {
+            var message = "<p>Thank you for your participation. If you have any questions, please contact </p>" +
+                "<p>the principal investigator, Patience Stevens, at pstevens@andrew.cmu.edu.</p>" +
+                "<p>**Press Enter to save your data.**</p>" +
+                "<p>**This will automatically alert the experimenter that you have completed the study.**.</p>";
+            return message;
+        }
+    }
+    timeline.push(debrief6);
+
+    jsPsych.init({
+        timeline: timeline,
+        on_data_update: function (data) {
+            // write data file to server data folder
+            saveData(subjID + "_incomplete_data.csv", jsPsych.data.get().csv());
+        },
+        on_finish: function () {
+            // write data file to server data folder
+            var subnum = JSON.parse(jsPsych.data.get().filter({ block: 'subjnum' }).values()[0].responses).SonaID;
+            finalSaveData("sub_" + subnum + "_complete_data.csv", jsPsych.data.get().csv());
+        },
+        default_iti: 0
+    });
+</script>
+
+</html>
